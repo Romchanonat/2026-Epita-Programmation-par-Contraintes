@@ -1,10 +1,14 @@
 import random
 import json
 BLOOD_TYPE_COMPATIBILITY = {
-    'O':  ['O', 'A', 'B', 'AB'],
-    'A':  ['A', 'AB'],
-    'B':  ['B', 'AB'],
-    'AB': ['AB'],
+    'O-':  ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'],
+    'O+':  ['O+', 'A+', 'B+', 'AB+'],
+    'A-':  ['A-', 'A+', 'AB-', 'AB+'],
+    'A+':  ['A+', 'AB+'],
+    'B-':  ['B-', 'B+', 'AB-', 'AB+'],
+    'B+':  ['B+', 'AB+'],
+    'AB-': ['AB-', 'AB+'],
+    'AB+': ['AB+'],
 }
 BLOOD_TYPES = ['O', 'A', 'B', 'AB']
 BLOOD_FREQ = [0.44, 0.42, 0.10, 0.04]  # fréquences réelles
