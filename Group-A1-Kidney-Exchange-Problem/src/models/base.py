@@ -1,5 +1,14 @@
 # Solver result
 
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
+from typing import List, Optional
+
+from core.graph import KEPGraph
+
+# Si KEPGraph est défini dans un autre fichier, n'oublie pas de l'importer :
+# from your_module import KEPGraph
+
 @dataclass
 class KEPSolution:
     cycles: list[list[int]]         # cycles sélectionnés
@@ -29,7 +38,6 @@ class BaseSolver(ABC):
     def __init__(self, kep_graph: KEPGraph):
         self.graph    = kep_graph
         self.cycles   = kep_graph.get_valid_cycles()
-        self.chains   = kep_graph.get_valid_chains()
 
     @abstractmethod
     def solve(self) -> KEPSolution:
