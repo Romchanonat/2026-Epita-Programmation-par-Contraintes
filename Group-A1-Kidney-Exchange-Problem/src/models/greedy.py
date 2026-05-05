@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from core.graph import KEPGraph
-from models.base import KidneyExchangeSolver, SolverResult
+from src.core.graph import KEPGraph
+from src.models.base import KidneyExchangeSolver, SolverResult
 
 
 class GreedySolver(KidneyExchangeSolver):
