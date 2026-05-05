@@ -1,4 +1,4 @@
-from graph import Donor, Patient
+from core.graph import Donor, Patient
 
 BLOOD_TYPE_COMPATIBILITY = {
     'O':  ['O', 'A', 'B', 'AB'],
