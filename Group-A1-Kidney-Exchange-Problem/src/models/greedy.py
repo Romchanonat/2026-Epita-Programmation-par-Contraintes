@@ -1,117 +1,140 @@
-import time
-from typing import List
+from __future__ import annotations
 
-from models.base import BaseSolver, KEPSolution
+from core.graph import KEPGraph
+from models.base import KidneyExchangeSolver, SolverResult
 
 
-class GreedySolver(BaseSolver):
-    """Heuristique gloutonne pour le Kidney Exchange Problem."""
+class GreedySolver(KidneyExchangeSolver):
+    """
+    Heuristique gloutonne pour le KEP.
 
-    def __init__(self, kep_graph):
-        super().__init__(kep_graph)
+    Paramètres :
+        graph           : Graphe KEP.
+        max_cycle_size  : Taille max des cycles.
+        strategy        : Critère de sélection 'weight', 'size' ou 'density'.
+        use_chains      : Inclure les chaînes altruistes.
+    """
 
-    def solve(self) -> KEPSolution:
-        start_time = time.time()
+    STRATEGIES = ("weight", "size", "density")
 
-        G = self.graph.graph
+    def __init__(
+        self,
+        graph: KEPGraph,
+        max_cycle_size: int = 3,
+        strategy: str = "weight",
+        use_chains: bool = True,
+    ):
+        super().__init__(graph, max_cycle_size)
+        if strategy not in self.STRATEGIES:
+            raise ValueError(f"strategy doit être parmi {self.STRATEGIES}.")
+        self.strategy = strategy
+        self.use_chains = use_chains
 
-        # Score des cycles
-        scored_cycles = []
-        for cycle in self.cycles:
-            weight = self._cycle_weight(cycle, G)
-            scored_cycles.append((cycle, weight))
+    @property
+    def name(self) -> str:
+        return f"Greedy ({self.strategy})"
 
-        # Trier par poids décroissant
-        scored_cycles.sort(key=lambda x: x[1], reverse=True)
+    def solve(self, time_limit: float = 60.0) -> SolverResult:
+        """
+        Lance l'heuristique gloutonne.
 
-        # Sélection gloutonne de cycles disjoints
-        selected_cycles: List[List[int]] = []
-        used_nodes = set()
+        Note : time_limit n'est pas utilisé (l'algo est quasi-instantané),
+        mais l'argument est conservé pour respecter l'interface commune.
+        """
+        t0 = self._start_timer()
+        G = self.graph
 
-        for cycle, weight in scored_cycles:
-            if any(node in used_nodes for node in cycle):
+        # Énumérer toutes les options (cycles + chaînes)
+        candidates = self._build_candidates()
+
+        if not candidates:
+            return self._no_solution("INFEASIBLE", self._elapsed(t0))
+
+        # Trier selon la stratégie choisie (ordre décroissant)
+        candidates.sort(key=self._priority_key, reverse=True)
+
+        # Sélection gloutonne
+        selected_cycles: list[list[int]] = []
+        selected_chains: list[list[int]] = []
+        used_pairs: set[int] = set()
+        total_weight = 0.0
+
+        for candidate in candidates:
+            kind = candidate["kind"]
+            nodes = candidate["nodes"]
+
+            # Vérifier la disjonction
+            if any(n in used_pairs for n in nodes):
                 continue
 
-            selected_cycles.append(cycle)
-            used_nodes.update(cycle)
+            # Accepter ce cycle/chaîne
+            used_pairs.update(nodes)
+            total_weight += candidate["weight"]
 
-        # Chaînes altruistes (simple greedy DFS)
-        chains = self._build_greedy_chains(used_nodes)
+            if kind == "cycle":
+                selected_cycles.append(candidate["path"])
+            else:
+                selected_chains.append(candidate["path"])
 
-        # Calcul des métriques
-        total_transplants = sum(len(c) for c in selected_cycles) + sum(len(ch) for ch in chains)
-        total_weight = sum(self._cycle_weight(c, G) for c in selected_cycles) \
-                     + sum(self._chain_weight(ch, G) for ch in chains)
-
-        solve_time_ms = (time.time() - start_time) * 1000
-
-        return KEPSolution(
+        elapsed = self._elapsed(t0)
+        return self._make_result(
+            status="FEASIBLE",
             cycles=selected_cycles,
-            chains=chains,
-            total_transplants=total_transplants,
-            total_weight=total_weight,
-            solve_time_ms=solve_time_ms,
-            solver_name="Greedy"
+            chains=selected_chains,
+            objective_value=total_weight,
+            wall_time=elapsed,
+            strategy=self.strategy,
+            n_candidates_evaluated=len(candidates),
         )
 
-    def _cycle_weight(self, cycle, G):
-        weight = 0.0
-        for i in range(len(cycle)):
-            u = cycle[i]
-            v = cycle[(i + 1) % len(cycle)]
-            weight += G[u][v].get("weight", 1.0)
-        return weight
+    # Construction des candidats
 
-    def _chain_weight(self, chain, G):
-        weight = 0.0
-        for i in range(len(chain) - 1):
-            u, v = chain[i], chain[i + 1]
-            weight += G[u][v].get("weight", 1.0)
-        return weight
-
-    def _build_greedy_chains(self, used_nodes):
+    def _build_candidates(self) -> list[dict]:
         """
-        Construit des chaînes à partir des donneurs altruistes.
-        Approche simple : DFS greedy en maximisant le poids local.
+        Construit la liste de tous les cycles et chaînes valides
+        avec leurs métadonnées de priorité.
         """
-        G = self.graph.graph
-        chains = []
+        G = self.graph
+        ndd_ids = {p.id for p in G.pairs if p.is_altruistic}
+        candidates = []
 
-        # Identifier les nœuds altruistes
-        altruists = [
-            pair.id for pair in self.graph.pairs
-            if getattr(pair, "is_altruistic", False)
-        ]
+        # Cycles
+        for cycle in G.get_valid_cycles():
+            w = G.cycle_weight(cycle)
+            candidates.append({
+                "kind": "cycle",
+                "path": cycle,
+                "nodes": set(cycle),
+                "weight": w,
+                "size": len(cycle),
+            })
 
-        for start in altruists:
-            if start in used_nodes:
-                continue
+        # Chaînes (si activées)
+        if self.use_chains:
+            for chain in G.get_valid_chains():
+                w = G.chain_weight(chain)
+                # Les nœuds "occupés" d'une chaîne sont les paires régulières
+                # (pas le NDD lui-même — mais on le bloque quand même)
+                nodes_in_chain = set(chain)   # inclut le NDD
+                patients_in_chain = set(chain[1:])   # paires régulières seulement
+                candidates.append({
+                    "kind": "chain",
+                    "path": chain,
+                    "nodes": nodes_in_chain,
+                    "weight": w,
+                    "size": len(chain) - 1,   # transplants réalisés (hors NDD)
+                })
 
-            chain = [start]
-            current = start
+        return candidates
 
-            while True:
-                # voisins possibles non utilisés
-                candidates = [
-                    j for j in G.successors(current)
-                    if j not in used_nodes and j not in chain
-                ]
-
-                if not candidates:
-                    break
-
-                # choisir le meilleur successeur (greedy)
-                best_next = max(
-                    candidates,
-                    key=lambda j: G[current][j].get("weight", 1.0)
-                )
-
-                chain.append(best_next)
-                used_nodes.add(best_next)
-                current = best_next
-
-            if len(chain) > 1:
-                used_nodes.update(chain)
-                chains.append(chain)
-
-        return chains
+    def _priority_key(self, candidate: dict) -> float:
+        """Retourne la clé de priorité selon la stratégie."""
+        if self.strategy == "weight":
+            return candidate["weight"]
+        elif self.strategy == "size":
+            # Tiebreak par poids pour les cycles de même taille
+            return candidate["size"] + candidate["weight"] * 1e-6
+        elif self.strategy == "density":
+            size = max(1, candidate["size"])
+            return candidate["weight"] / size
+        return 0.0
