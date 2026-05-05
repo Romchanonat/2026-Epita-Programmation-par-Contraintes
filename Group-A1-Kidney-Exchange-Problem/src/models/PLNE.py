@@ -32,7 +32,7 @@ class PLNESolver(BaseSolver):
             while stack:
                 path = stack.pop()
                 last = path[-1]
-                if len(path >= 2):
+                if len(path) >= 2:
                     chains.append(path[:])
                 if len(path) <= self.max_chain_length:
                     for _, neighboor in self.graph.graph.out_edges(last):
@@ -42,7 +42,7 @@ class PLNESolver(BaseSolver):
         return chains
     
 
-    def _cycle_weigths(self, cycle: list[int]) -> float:
+    def _cycle_weights(self, cycle: list[int]) -> float:
         """
         Sums the weights of the edges of the cycle
         """
@@ -58,7 +58,7 @@ class PLNESolver(BaseSolver):
         return total
     
 
-    def _chain_weight(self, chain: list[int]) -> float:
+    def _chain_weights(self, chain: list[int]) -> float:
         """
         sums the weights of the edges of the chain
         """
@@ -104,10 +104,10 @@ class PLNESolver(BaseSolver):
         }
 
         prob += pulp.lpSum(
-            self._cycle_weight(self.cycles[i]) * x[i]
+            self._cycle_weights(self.cycles[i]) * x[i]
             for i in range(len(self.cycles))
         ) + pulp.lpSum(
-            self._chain_weight(self.chains[j]) * y[j]
+            self._chain_weights(self.chains[j]) * y[j]
             for j in range(len(self.chains))
         )
 
@@ -148,15 +148,15 @@ class PLNESolver(BaseSolver):
         ]
 
         selected_chains = [
-            self.chains[j]
+            self.chains[j] 
             for j in range(len(self.chains))
             if pulp.value(y[j]) is not None and pulp.value(y[j]) > 0.5
         ]
 
-        total_weight = sum(self._cycle_weight(c) for c in selected_chains) + \
-                        (self._chain_weight(ch) for ch in selected_chains)
+        total_weight = sum(self._cycle_weights(c) for c in selected_cycles) + \
+                        sum(self._chain_weights(ch) for ch in selected_chains)
         
-        total_transplants = sum(self._cycle_transplants(c) for c in selected_chains) + \
+        total_transplants = sum(self._cycle_transplants(c) for c in selected_cycles) + \
                             sum(self._chain_transplants(ch) for ch in selected_chains)
         
 
