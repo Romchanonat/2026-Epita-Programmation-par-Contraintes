@@ -1,12 +1,3 @@
-"""
-base.py
--------
-Classe abstraite dont héritent tous les solveurs KEP.
-
-Définit l'interface commune : solve(), get_solution_summary()
-et les structures de données partagées (SolverResult).
-"""
-
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -16,9 +7,6 @@ import time
 from core.graph import KEPGraph
 
 
-# ---------------------------------------------------------------------------
-# Structure de résultat
-# ---------------------------------------------------------------------------
 
 @dataclass
 class SolverResult:
@@ -77,9 +65,6 @@ class SolverResult:
         }
 
 
-# ---------------------------------------------------------------------------
-# Classe abstraite
-# ---------------------------------------------------------------------------
 
 class KidneyExchangeSolver(ABC):
     """
@@ -133,9 +118,6 @@ class KidneyExchangeSolver(ABC):
         """Dernier résultat calculé (None si solve() jamais appelé)."""
         return self._result
 
-    # ------------------------------------------------------------------
-    # Utilitaires protégés (utilisables par les sous-classes)
-    # ------------------------------------------------------------------
 
     def _start_timer(self) -> float:
         """Démarre le chronomètre. Retourne le timestamp de départ."""
@@ -182,9 +164,6 @@ class KidneyExchangeSolver(ABC):
             wall_time=wall_time,
         )
 
-    # ------------------------------------------------------------------
-    # Représentation
-    # ------------------------------------------------------------------
 
     def __repr__(self) -> str:
         return f"{self.name}(max_cycle={self.max_cycle_size}, graph={self.graph})"
