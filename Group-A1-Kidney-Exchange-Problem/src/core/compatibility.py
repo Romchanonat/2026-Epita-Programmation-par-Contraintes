@@ -1,8 +1,6 @@
-<<<<<<< HEAD
-from core.graph import Donor, Patient
-=======
+
 from src.core.graph import Donor, Patient
->>>>>>> cp-sat
+
 
 BLOOD_TYPE_COMPATIBILITY = {
     'O':  ['O', 'A', 'B', 'AB'],
