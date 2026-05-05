@@ -59,9 +59,8 @@ def test_basic():
     sol = solver.solve()
     sol.summary()
 
-    assert sol.total_transplants >= 0
-    assert sol.total_weight >= 0
-    assert sol.solver_name == "PLNE"
+    assert sol.n_transplants >= 0
+    assert sol.objective_value >= 0
     print("✓ Solution valide\n")
 
 
@@ -98,7 +97,7 @@ def test_empty_graph():
     solver = PLNESolver(kep)
     sol = solver.solve()
 
-    assert sol.total_transplants == 0
+    assert sol.n_transplants == 0
     assert sol.cycles == []
     print("✓ Graphe vide géré correctement\n")
 

@@ -5,10 +5,10 @@ import pulp
 import networkx as nx
 import time
  
-from models.base import BaseSolver, KEPSolution
+from models.base import KidneyExchangeSolver, SolverResult
 from core.graph import KEPGraph
 
-class PLNESolver(BaseSolver):
+class PLNESolver(KidneyExchangeSolver):
     """
     Solver PLNE for Kidney Exchange Problem
     """
@@ -16,6 +16,10 @@ class PLNESolver(BaseSolver):
     def __init__(self, kep_graph: KEPGraph, max_chain_length: int = 3):
 
         super().__init__(kep_graph)
+
+        self.cycles = []
+        self.chains = []
+
         self.max_chain_length = max_chain_length
         self.chains = self._enumerate_chains()
 
@@ -88,7 +92,7 @@ class PLNESolver(BaseSolver):
         return len(chain) - 1
 
 
-    def solve(self) -> KEPSolution:
+    def solve(self) -> SolverResult:
         t0 = time.time()
 
         prob = pulp.LpProblem("KEP_PLNE", pulp.LpMaximize)
@@ -155,16 +159,12 @@ class PLNESolver(BaseSolver):
 
         total_weight = sum(self._cycle_weights(c) for c in selected_cycles) + \
                         sum(self._chain_weights(ch) for ch in selected_chains)
-        
-        total_transplants = sum(self._cycle_transplants(c) for c in selected_cycles) + \
-                            sum(self._chain_transplants(ch) for ch in selected_chains)
-        
 
-        return KEPSolution(
-            cycles=selected_cycles,
-            chains=selected_chains,
-            total_transplants=total_transplants,
-            total_weight=total_weight,
-            solve_time_ms=solve_time_ms,
-            solver_name="PLNE",
+
+        return self._make_result(
+            "OPTIMIZED",
+            selected_cycles,
+            selected_chains,
+            total_weight,
+            solve_time_ms,
         )
