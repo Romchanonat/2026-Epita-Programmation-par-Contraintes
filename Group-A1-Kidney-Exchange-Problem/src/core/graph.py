@@ -51,3 +51,29 @@ class KEPGraph:
             if 2 <= len(cycle) <= self.max_cycle_size:
                 cycles.append(cycle)
         return cycles
+    
+    def get_valid_chains(self) -> list[list[int]]:
+        """Énumère toutes les chaînes possibles à partir des NDD."""
+        chains = []
+        # 1. Identifier tous les altruistes (NDD)
+        altruist_nodes = [
+            n for n, data in self.graph.nodes(data=True) 
+            if data['pair'].is_altruistic
+        ]
+        
+        # 2. Identifier tous les autres nœuds (cibles potentielles)
+        all_nodes = set(self.graph.nodes)
+
+        for source in altruist_nodes:
+            # On cherche les chemins vers n'importe quel autre nœud
+            targets = all_nodes - {source}
+            # On utilise all_simple_paths avec une liste de targets
+            paths = nx.all_simple_paths(
+                self.graph, 
+                source=source, 
+                target=targets, 
+                cutoff=self.max_cycle_size
+            )
+            chains.extend(paths)
+            
+        return chains
