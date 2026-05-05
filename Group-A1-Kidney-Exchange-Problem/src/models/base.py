@@ -1,12 +1,28 @@
+<<<<<<< HEAD
+=======
+"""
+base.py
+-------
+Classe abstraite dont héritent tous les solveurs KEP.
+
+Définit l'interface commune : solve(), get_solution_summary()
+et les structures de données partagées (SolverResult).
+"""
+
+>>>>>>> cp-sat
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional
 import time
 
+<<<<<<< HEAD
 from core.graph import KEPGraph
 
 
+=======
+from src.core.graph import KEPGraph
+>>>>>>> cp-sat
 
 @dataclass
 class SolverResult:
@@ -21,7 +37,10 @@ class SolverResult:
         objective_value : Valeur de la fonction objectif (poids total)
         wall_time       : Temps de résolution en secondes
         solver_name     : Nom du solveur utilisé
+<<<<<<< HEAD
         metadata        : Informations supplémentaires (spécifiques au solveur)
+=======
+>>>>>>> cp-sat
     """
     status: str
     cycles: list[list[int]] = field(default_factory=list)
@@ -30,7 +49,10 @@ class SolverResult:
     objective_value: float = 0.0
     wall_time: float = 0.0
     solver_name: str = "unknown"
+<<<<<<< HEAD
     metadata: dict = field(default_factory=dict)
+=======
+>>>>>>> cp-sat
 
     def is_feasible(self) -> bool:
         return self.status in ("OPTIMAL", "FEASIBLE")
@@ -45,10 +67,13 @@ class SolverResult:
             f"  Objective      : {self.objective_value:.2f}",
             f"  Wall time      : {self.wall_time:.3f}s",
         ]
+<<<<<<< HEAD
         if self.metadata:
             for k, v in self.metadata.items():
                 lines.append(f"  {k:15s}: {v}")
         return "\n".join(lines)
+=======
+>>>>>>> cp-sat
 
     def to_dict(self) -> dict:
         return {
@@ -61,10 +86,19 @@ class SolverResult:
             "wall_time": round(self.wall_time, 4),
             "cycles": self.cycles,
             "chains": self.chains,
+<<<<<<< HEAD
             **self.metadata,
         }
 
 
+=======
+        }
+
+
+# ---------------------------------------------------------------------------
+# Classe abstraite
+# ---------------------------------------------------------------------------
+>>>>>>> cp-sat
 
 class KidneyExchangeSolver(ABC):
     """
@@ -90,6 +124,10 @@ class KidneyExchangeSolver(ABC):
         self.graph = graph
         self.max_cycle_size = max_cycle_size
         self._result: Optional[SolverResult] = None
+<<<<<<< HEAD
+=======
+        self.altruist_enabled = False  # Par défaut, on n'active pas les chaînes altruistes
+>>>>>>> cp-sat
 
     # ------------------------------------------------------------------
     # Interface publique
@@ -118,6 +156,12 @@ class KidneyExchangeSolver(ABC):
         """Dernier résultat calculé (None si solve() jamais appelé)."""
         return self._result
 
+<<<<<<< HEAD
+=======
+    # ------------------------------------------------------------------
+    # Utilitaires protégés (utilisables par les sous-classes)
+    # ------------------------------------------------------------------
+>>>>>>> cp-sat
 
     def _start_timer(self) -> float:
         """Démarre le chronomètre. Retourne le timestamp de départ."""
@@ -164,6 +208,12 @@ class KidneyExchangeSolver(ABC):
             wall_time=wall_time,
         )
 
+<<<<<<< HEAD
+=======
+    # ------------------------------------------------------------------
+    # Représentation
+    # ------------------------------------------------------------------
+>>>>>>> cp-sat
 
     def __repr__(self) -> str:
         return f"{self.name}(max_cycle={self.max_cycle_size}, graph={self.graph})"

@@ -48,12 +48,13 @@ class KEPGraph:
     def get_valid_cycles(self) -> list[list[int]]:
         """Énumère tous les cycles simples de taille <= max_cycle_size."""
         cycles = []
-        for cycle in nx.simple_cycles(self.graph):
+        for cycle in nx.simple_cycles(self.graph, length_bound=self.max_cycle_size):
             if 2 <= len(cycle) <= self.max_cycle_size:
                 cycles.append(cycle)
         return cycles
     
     def get_valid_chains(self) -> list[list[int]]:
+<<<<<<< HEAD
         """
         Énumère les chaînes altruistes de longueur dans [1, max_chain_length].
 
@@ -123,3 +124,29 @@ class KEPGraph:
             self.arc_weight(chain[k], chain[k + 1])
             for k in range(len(chain) - 1)
         )
+=======
+        """Énumère toutes les chaînes possibles à partir des NDD."""
+        chains = []
+        # 1. Identifier tous les altruistes (NDD)
+        altruist_nodes = [
+            n for n, data in self.graph.nodes(data=True) 
+            if data['pair'].is_altruistic
+        ]
+        
+        # 2. Identifier tous les autres nœuds (cibles potentielles)
+        all_nodes = set(self.graph.nodes)
+
+        for source in altruist_nodes:
+            # On cherche les chemins vers n'importe quel autre nœud
+            targets = all_nodes - {source}
+            # On utilise all_simple_paths avec une liste de targets
+            paths = nx.all_simple_paths(
+                self.graph, 
+                source=source, 
+                target=targets, 
+                cutoff=self.max_cycle_size
+            )
+            chains.extend(paths)
+            
+        return chains
+>>>>>>> cp-sat
