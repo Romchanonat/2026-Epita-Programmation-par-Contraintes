@@ -47,7 +47,7 @@ class KEPGraph:
     def get_valid_cycles(self) -> list[list[int]]:
         """Énumère tous les cycles simples de taille <= max_cycle_size."""
         cycles = []
-        for cycle in nx.simple_cycles(self.graph):
+        for cycle in nx.simple_cycles(self.graph, length_bound=self.max_cycle_size):
             if 2 <= len(cycle) <= self.max_cycle_size:
                 cycles.append(cycle)
         return cycles
