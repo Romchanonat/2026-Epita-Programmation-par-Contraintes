@@ -32,62 +32,54 @@ class GreedySolver(KidneyExchangeSolver):
 
     @property
     def name(self) -> str:
-        return f"Greedy ({self.strategy})"
+        return f"Greedy-{self.strategy}"
 
     def solve(self, time_limit: float = 60.0) -> SolverResult:
         """
         Lance l'heuristique gloutonne.
 
-        Note : time_limit n'est pas utilisé (l'algo est quasi-instantané),
+        Note : time_limit n'est pas utilisé (l'algorithme est quasi-instantané),
         mais l'argument est conservé pour respecter l'interface commune.
         """
         t0 = self._start_timer()
-        G = self.graph
 
-        # Énumérer toutes les options (cycles + chaînes)
         candidates = self._build_candidates()
-
         if not candidates:
             return self._no_solution("INFEASIBLE", self._elapsed(t0))
 
-        # Trier selon la stratégie choisie (ordre décroissant)
+        # Tri décroissant selon la stratégie choisie
         candidates.sort(key=self._priority_key, reverse=True)
 
-        # Sélection gloutonne
         selected_cycles: list[list[int]] = []
         selected_chains: list[list[int]] = []
         used_pairs: set[int] = set()
         total_weight = 0.0
 
         for candidate in candidates:
-            kind = candidate["kind"]
             nodes = candidate["nodes"]
 
-            # Vérifier la disjonction
+            # Vérifier la disjonction avec les paires déjà sélectionnées
             if any(n in used_pairs for n in nodes):
                 continue
 
-            # Accepter ce cycle/chaîne
             used_pairs.update(nodes)
             total_weight += candidate["weight"]
 
-            if kind == "cycle":
+            if candidate["kind"] == "cycle":
                 selected_cycles.append(candidate["path"])
             else:
                 selected_chains.append(candidate["path"])
 
-        elapsed = self._elapsed(t0)
         return self._make_result(
             status="FEASIBLE",
             cycles=selected_cycles,
             chains=selected_chains,
             objective_value=total_weight,
-            wall_time=elapsed,
+            wall_time=self._elapsed(t0),
             strategy=self.strategy,
             n_candidates_evaluated=len(candidates),
         )
 
-    # Construction des candidats
 
     def _build_candidates(self) -> list[dict]:
         """
@@ -95,46 +87,39 @@ class GreedySolver(KidneyExchangeSolver):
         avec leurs métadonnées de priorité.
         """
         G = self.graph
-        ndd_ids = {p.id for p in G.pairs if p.is_altruistic}
         candidates = []
 
-        # Cycles
         for cycle in G.get_valid_cycles():
             w = G.cycle_weight(cycle)
             candidates.append({
-                "kind": "cycle",
-                "path": cycle,
-                "nodes": set(cycle),
+                "kind":   "cycle",
+                "path":   cycle,
+                "nodes":  set(cycle),
                 "weight": w,
-                "size": len(cycle),
+                "size":   len(cycle),
             })
 
-        # Chaînes (si activées)
-        if self.use_chains:
+        if self.use_chains and self.altruist_enabled:
             for chain in G.get_valid_chains():
                 w = G.chain_weight(chain)
-                # Les nœuds "occupés" d'une chaîne sont les paires régulières
-                # (pas le NDD lui-même — mais on le bloque quand même)
-                nodes_in_chain = set(chain)   # inclut le NDD
-                patients_in_chain = set(chain[1:])   # paires régulières seulement
                 candidates.append({
-                    "kind": "chain",
-                    "path": chain,
-                    "nodes": nodes_in_chain,
+                    "kind":   "chain",
+                    "path":   chain,
+                    "nodes":  set(chain),   # inclut le NDD
                     "weight": w,
-                    "size": len(chain) - 1,   # transplants réalisés (hors NDD)
+                    "size":   len(chain) - 1,   # transplantations réalisées
                 })
 
         return candidates
 
     def _priority_key(self, candidate: dict) -> float:
-        """Retourne la clé de priorité selon la stratégie."""
+        """Retourne la clé de tri selon la stratégie."""
         if self.strategy == "weight":
             return candidate["weight"]
         elif self.strategy == "size":
-            # Tiebreak par poids pour les cycles de même taille
             return candidate["size"] + candidate["weight"] * 1e-6
         elif self.strategy == "density":
             size = max(1, candidate["size"])
             return candidate["weight"] / size
         return 0.0
+

@@ -17,12 +17,12 @@ class CompatibilityChecker:
         """
         # Niveau 1 : groupe sanguin (éliminatoire)
         if patient.blood_type not in BLOOD_TYPE_COMPATIBILITY[donor.blood_type]:
-            return 0
+            return 0.0
 
         # Niveau 2 : anticorps HLA (éliminatoire)
         for antibody in patient.hla_antibodies:
             if antibody in donor.hla_antigens:
-                return 0
+                return 0.0
 
         # Score de compatibilité HLA
         hla_matches = sum(
@@ -31,6 +31,6 @@ class CompatibilityChecker:
         )
 
         # Pondération : priorité aux patients très sensibilisés (PRA élevé)
-        priority_bonus = 1 + patient.pra
+        priority_bonus = 1.0 + patient.pra
 
-        return hla_matches * priority_bonus
+        return max(1.0, hla_matches * priority_bonus)
